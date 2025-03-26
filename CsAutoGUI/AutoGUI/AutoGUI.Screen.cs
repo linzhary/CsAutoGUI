@@ -3,11 +3,11 @@ using OpenCvSharp.Extensions;
 
 namespace CsAutoGUI;
 
-public class AutoWindow
+public partial class AutoGUI
 {
-    public static IntPtr FindWindowLikeTitle(string titleLike)
+    public static AutoWindow? FindWindowLikeTitle(string titleLike)
     {
-        IntPtr hWndResult = IntPtr.Zero;
+        var hWndResult = HWND.Null;
         // 调用 EnumWindows 枚举所有窗口
         PInvoke.EnumWindows((hWnd, lParam) =>
         {
@@ -28,21 +28,10 @@ public class AutoWindow
 
             return true; // 继续枚举
         }, IntPtr.Zero);
-        return hWndResult;
+        return hWndResult == HWND.Null ? null : new AutoWindow(hWndResult);
     }
 
-    public static void SetForegroundWindow(IntPtr hWnd)
-    {
-        PInvoke.SetForegroundWindow((HWND)hWnd);
-    }
-
-    public static Box GetWindowRegion(IntPtr hWnd)
-    {
-        PInvoke.GetWindowRect((HWND)hWnd, out var rect);
-        return new Box(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
-    }
-
-    private static System.Drawing.Bitmap CapitureWindow(Box region)
+    private static System.Drawing.Bitmap CapitureWindow(SmartRect region)
     {
         var desktopWnd = PInvoke.GetDesktopWindow();
         var windowDC = PInvoke.GetDC(desktopWnd);
@@ -61,9 +50,9 @@ public class AutoWindow
         return bmp;
     }
 
-    public static Box? LocateOnRegion(
+    public static SmartRect? LocateOnRegion(
         string imagePach,
-        Box region,
+        SmartRect region,
         double confidence = 0.999,
         bool grayscale = true)
     {
@@ -78,20 +67,20 @@ public class AutoWindow
         };
     }
 
-    public static Box? LocateOnScreen(
+    public static SmartRect? LocateOnScreen(
         string imagePach,
         double confidence = 0.999,
         bool grayscale = true)
     {
         var screenWidth = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSCREEN);
         var screenHeight = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSCREEN);
-        var region = new Box(0, 0, screenWidth, screenHeight);
+        var region = new SmartRect(0, 0, screenWidth, screenHeight);
         var haystackImage = CapitureWindow(region).ToMat();
         var needleImage = Cv2.ImRead(imagePach);
         return Locate(haystackImage, needleImage, grayscale, confidence);
     }
 
-    private static Box? Locate(Mat haystackImage, Mat needleImage, bool grayscale, double confidence)
+    private static SmartRect? Locate(Mat haystackImage, Mat needleImage, bool grayscale, double confidence)
     {
         if (grayscale)
         {
@@ -111,7 +100,7 @@ public class AutoWindow
         // 如果未找到匹配
         if (maxVal >= confidence)
         {
-            var box = new Box(maxLoc.X, maxLoc.Y, needleImage.Cols, needleImage.Rows);
+            var box = new SmartRect(maxLoc.X, maxLoc.Y, needleImage.Cols, needleImage.Rows);
             //// 在原图上绘制红色边框
             //Cv2.Rectangle(haystackImage, box, Scalar.Red, 2);
             //// 显示结果
@@ -122,5 +111,26 @@ public class AutoWindow
         }
 
         return null;
+    }
+}
+
+public class AutoWindow
+{
+    private readonly HWND _hWnd;
+
+    public SmartRect GetRegion()
+    {
+        PInvoke.GetWindowRect(_hWnd, out var rect);
+        return new SmartRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+    }
+
+    internal AutoWindow(HWND hWnd)
+    {
+        _hWnd = hWnd;
+    }
+
+    public void Active()
+    {
+        PInvoke.SetForegroundWindow(_hWnd);
     }
 }

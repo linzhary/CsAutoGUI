@@ -1,11 +1,13 @@
 ﻿using CsAutoGUI;
 
-var handle = AutoWindow.FindWindowLikeTitle("修仙聊天群MOD反馈群");
-var region = AutoWindow.GetWindowRegion(handle);
-AutoWindow.SetForegroundWindow(handle);
-foreach(var ch in "buzhidao")
+
+var window = AutoGUI.FindWindowLikeTitle("内鬼情报交流群");
+if (window is null) return;
+var region = window.GetRegion();
+window.Active();
+foreach (var ch in "buzhidao")
 {
-    AutoKeyboard.Press(Enum.Parse<VirtualKey>(ch.ToString(), ignoreCase: true));
+    AutoGUI.Press(Enum.Parse<VirtualKey>(ch.ToString(), ignoreCase: true));
 }
-AutoKeyboard.Press(VirtualKey.SPACE);
-AutoKeyboard.Press(VirtualKey.RETURN);
+AutoGUI.Press(VirtualKey.SPACE);
+AutoGUI.Press(VirtualKey.RETURN);

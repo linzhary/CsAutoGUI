@@ -252,11 +252,11 @@ public enum VirtualKey : byte
     PA1 = 253,
     OEM_CLEAR = 254,
 }
-public class AutoKeyboard
+public partial class AutoGUI
 {
     public static void KeyDown(params VirtualKey[] keyCodes)
     {
-        foreach(byte vk in keyCodes)
+        foreach (byte vk in keyCodes)
         {
             PInvoke.keybd_event(vk, 0, 0, 0);
         }

@@ -1,4 +1,6 @@
-﻿namespace CsAutoGUI;
+﻿using System.Threading.Tasks;
+
+namespace CsAutoGUI;
 
 public enum VirtualKey : byte
 {
@@ -252,18 +254,25 @@ public enum VirtualKey : byte
 }
 public class AutoKeyboard
 {
-    public static void Press(params VirtualKey[] keyCodes)
+    public static void KeyDown(params VirtualKey[] keyCodes)
     {
         foreach(byte vk in keyCodes)
         {
             PInvoke.keybd_event(vk, 0, 0, 0);
         }
     }
-    public static void Release(params VirtualKey[] keyCodes)
+    public static void KeyUp(params VirtualKey[] keyCodes)
     {
         foreach (byte vk in keyCodes.Reverse())
         {
             PInvoke.keybd_event(vk, 0, KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP, 0);
         }
+    }
+
+    public static void Press(params VirtualKey[] keyCodes)
+    {
+        KeyDown(keyCodes);
+        Task.Delay(10).Wait();
+        KeyUp(keyCodes);
     }
 }

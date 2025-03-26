@@ -7,6 +7,11 @@ public class AutoMouse
         return PInvoke.SetCursorPos(x, y);
     }
 
+    public static bool MoveToCenter(Box box)
+    {
+        return MoveTo(box.X + box.Width / 2, box.Y + box.Height / 2);
+    }
+
     public static void LeftClick(int x, int y)
     {
         PInvoke.GetCursorPos(out var point);
@@ -19,6 +24,11 @@ public class AutoMouse
         MoveTo(point.X, point.Y);
     }
 
+    public static void LeftClickCenter(Box box)
+    {
+        LeftClick(box.X + box.Width / 2, box.Y + box.Height / 2);
+    }
+
     public static void RightClick(int x, int y)
     {
         PInvoke.GetCursorPos(out var point);
@@ -29,5 +39,10 @@ public class AutoMouse
         y = y * 65535 / screenHeight;
         PInvoke.mouse_event(MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTUP | MOUSE_EVENT_FLAGS.MOUSEEVENTF_RIGHTDOWN | MOUSE_EVENT_FLAGS.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0);
         MoveTo(point.X, point.Y);
+    }
+
+    public static void RightClickCenter(Box box)
+    {
+        RightClick(box.X + box.Width / 2, box.Y + box.Height / 2);
     }
 }

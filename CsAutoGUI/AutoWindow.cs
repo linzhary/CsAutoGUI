@@ -36,21 +36,21 @@ public class AutoWindow
         PInvoke.SetForegroundWindow((HWND)hWnd);
     }
 
-    public static Rect GetWindowRect(IntPtr hWnd)
+    public static Box GetWindowRegion(IntPtr hWnd)
     {
         PInvoke.GetWindowRect((HWND)hWnd, out var rect);
-        return new Rect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+        return new Box(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
     }
 
-    private static System.Drawing.Bitmap CapitureWindow(Rect rect)
+    private static System.Drawing.Bitmap CapitureWindow(Box region)
     {
         var desktopWnd = PInvoke.GetDesktopWindow();
         var windowDC = PInvoke.GetDC(desktopWnd);
         var memoryDC = PInvoke.CreateCompatibleDC(windowDC);
-        var hBitmap = PInvoke.CreateCompatibleBitmap(windowDC, rect.Width, rect.Height);
+        var hBitmap = PInvoke.CreateCompatibleBitmap(windowDC, region.Width, region.Height);
         var oldBitmap = PInvoke.SelectObject(memoryDC, hBitmap);
         // 复制屏幕到内存 DC
-        PInvoke.BitBlt(memoryDC, 0, 0, rect.Width, rect.Height, windowDC, rect.X, rect.Y, ROP_CODE.SRCCOPY);
+        PInvoke.BitBlt(memoryDC, 0, 0, region.Width, region.Height, windowDC, region.X, region.Y, ROP_CODE.SRCCOPY);
         // 创建 Bitmap 并保存
         var bmp = System.Drawing.Image.FromHbitmap(hBitmap);
         // 释放资源
@@ -61,22 +61,38 @@ public class AutoWindow
         return bmp;
     }
 
+    public static Box? LocateOnRegion(
+        string imagePach,
+        Box region,
+        double confidence = 0.999,
+        bool grayscale = true)
+    {
+        var haystackImage = CapitureWindow(region).ToMat();
+        var needleImage = Cv2.ImRead(imagePach);
+        var box = Locate(haystackImage, needleImage, grayscale, confidence);
+        if (box is null) return null;
+        return box with
+        {
+            X = box.X + region.X,
+            Y = box.Y + region.Y,
+        };
+    }
+
     public static Box? LocateOnScreen(
         string imagePach,
-        bool grayscale = true,
-        Rect? rect = null,
-        double confidence = 0.999)
+        double confidence = 0.999,
+        bool grayscale = true)
     {
-        var haystackImage = default(Mat?);
-        if (rect is null)
-        {
-            var width = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSCREEN);
-            var height = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSCREEN);
-            rect = new Rect(0, 0, width, height);
-        }
-
-        haystackImage ??= CapitureWindow(rect.Value).ToMat();
+        var screenWidth = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSCREEN);
+        var screenHeight = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSCREEN);
+        var region = new Box(0, 0, screenWidth, screenHeight);
+        var haystackImage = CapitureWindow(region).ToMat();
         var needleImage = Cv2.ImRead(imagePach);
+        return Locate(haystackImage, needleImage, grayscale, confidence);
+    }
+
+    private static Box? Locate(Mat haystackImage, Mat needleImage, bool grayscale, double confidence)
+    {
         if (grayscale)
         {
             needleImage.CvtColor(ColorConversionCodes.BGR2GRAY);
@@ -95,7 +111,14 @@ public class AutoWindow
         // 如果未找到匹配
         if (maxVal >= confidence)
         {
-            return new Box(maxLoc.X, maxLoc.Y, needleImage.Cols, needleImage.Rows);
+            var box = new Box(maxLoc.X, maxLoc.Y, needleImage.Cols, needleImage.Rows);
+            //// 在原图上绘制红色边框
+            //Cv2.Rectangle(haystackImage, box, Scalar.Red, 2);
+            //// 显示结果
+            //Cv2.ImShow("匹配结果", haystackImage);
+            //Cv2.WaitKey(0);
+            //Cv2.DestroyAllWindows();
+            return box;
         }
 
         return null;

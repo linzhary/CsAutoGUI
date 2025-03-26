@@ -11,7 +11,11 @@ public class UnitTest1
         var region = AutoWindow.GetWindowRegion(handle);
         AutoWindow.SetForegroundWindow(handle);
         Task.Delay(1000).Wait();
-        AutoKeyboard.Press(VirtualKey.B, VirtualKey.U, VirtualKey.Z, VirtualKey.H, VirtualKey.I, VirtualKey.D, VirtualKey.A, VirtualKey.O);
+        var pinyin = "buzhidao";
+        foreach (var ch in pinyin)
+        {
+            AutoKeyboard.Press(Enum.Parse<VirtualKey>(ch.ToString(), true));
+        }
         AutoKeyboard.Press(VirtualKey.SPACE);
         AutoKeyboard.Press(VirtualKey.RETURN);
         //var box = AutoWindow.LocateOnRegion("2.png", region, confidence: 0.9);

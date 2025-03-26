@@ -1,8 +1,4 @@
-﻿using Windows.Win32;
-using Windows.Win32.UI.WindowsAndMessaging;
-using Windows.Win32.UI.Input.KeyboardAndMouse;
-
-namespace CsAutoGUI;
+﻿namespace CsAutoGUI;
 
 public class AutoMouse
 {

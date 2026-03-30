@@ -13,4 +13,8 @@
 		<ProjectReference Include="..\CsAutoGUI\CsAutoGUI.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="PaddleOCRSharp" Version="6.1.0" />
+	</ItemGroup>
+
 </Project>

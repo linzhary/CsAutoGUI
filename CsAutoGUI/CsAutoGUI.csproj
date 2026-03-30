@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
@@ -12,7 +12,8 @@
 		<PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
 		<PackageReference Include="OpenCvSharp4.Extensions" Version="4.10.0.20241108" />
 		<PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
-		<PackageReference Include="System.Memory" Version="4.6.2" />
-		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.1" />
+		<PackageReference Include="Vortice.Direct3D11" Version="3.8.2" />
+		<PackageReference Include="Vortice.DXGI" Version="3.8.2" />
+		<PackageReference Include="Vortice.WinUI" Version="3.8.2" />
 	</ItemGroup>
 </Project>

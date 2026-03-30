@@ -1,5 +1,7 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.Extensions;
+using System.Drawing;
+using System.Reflection.Metadata;
 
 namespace CsAutoGUI;
 
@@ -18,7 +20,8 @@ public partial class AutoGUI
                 {
                     var chars = new char[length + 1];
                     _ = PInvoke.GetWindowText(hWnd, chars);
-                    if (string.Concat(chars).Contains(titleLike))
+                    var title = string.Concat(chars);
+                    if (title.Contains(titleLike))
                     {
                         hWndResult = hWnd;
                         return false;
@@ -68,7 +71,7 @@ public partial class AutoGUI
     }
 
     public static SmartRect? LocateOnScreen(
-        string imagePach,
+        string imagePatch,
         double confidence = 0.999,
         bool grayscale = true)
     {
@@ -76,16 +79,21 @@ public partial class AutoGUI
         var screenHeight = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSCREEN);
         var region = new SmartRect(0, 0, screenWidth, screenHeight);
         var haystackImage = CapitureWindow(region).ToMat();
-        var needleImage = Cv2.ImRead(imagePach);
+        var needleImage = Cv2.ImRead(imagePatch);
         return Locate(haystackImage, needleImage, grayscale, confidence);
     }
 
-    private static SmartRect? Locate(Mat haystackImage, Mat needleImage, bool grayscale, double confidence)
+    internal static SmartRect? Locate(Mat haystackImage, Mat needleImage, bool grayscale, double confidence)
     {
         if (grayscale)
         {
-            needleImage.CvtColor(ColorConversionCodes.BGR2GRAY);
-            haystackImage.CvtColor(ColorConversionCodes.BGR2GRAY);
+            needleImage = needleImage.CvtColor(ColorConversionCodes.BGR2GRAY);
+            haystackImage = haystackImage.CvtColor(ColorConversionCodes.BGR2GRAY);
+        }
+        else
+        {
+            needleImage = needleImage.CvtColor(ColorConversionCodes.BGRA2BGR);
+            haystackImage = haystackImage.CvtColor(ColorConversionCodes.BGRA2BGR);
         }
 
         if (haystackImage.Rows < needleImage.Rows || haystackImage.Cols < needleImage.Cols)
@@ -118,6 +126,8 @@ public class AutoWindow
 {
     private readonly HWND _hWnd;
 
+    public IntPtr Handle => (IntPtr)_hWnd;
+
     public SmartRect GetRegion()
     {
         PInvoke.GetWindowRect(_hWnd, out var rect);
@@ -129,8 +139,54 @@ public class AutoWindow
         _hWnd = hWnd;
     }
 
-    public void Active()
+    public void Active(bool active=true)
     {
-        PInvoke.SetForegroundWindow(_hWnd);
+        PInvoke.PostMessage(_hWnd, PInvoke.WM_ACTIVATE, active ? PInvoke.WA_ACTIVE : PInvoke.WA_INACTIVE, 0);
+        Task.Delay(10).Wait();
+    }
+
+    public void KeyPress(params VirtualKey[] keys)
+    {
+        AutoGUI.Press(_hWnd, keys);
+    }
+    public void LeftClick(int x, int y)
+    {
+        var lParam = (IntPtr)((y << 16) | (x & 0xFFFF));
+        PInvoke.PostMessage(_hWnd, PInvoke.WM_LBUTTONDOWN, 1, lParam);
+        Task.Delay(10).Wait();
+        PInvoke.PostMessage(_hWnd, PInvoke.WM_LBUTTONUP, 0, lParam);
+    }
+
+    public SmartRect? Locate(
+        string imagePach,
+        double confidence = 0.999,
+        bool grayscale = true)
+    {
+        using var bmp = FastScreenCapture.CaptureWindowNonForeground(Handle);
+        var haystackImage = bmp.ToMat();
+        var needleImage = Cv2.ImRead(imagePach);
+        return AutoGUI.Locate(haystackImage, needleImage, grayscale, confidence);
+    }
+
+    public Bitmap Capiture()
+    {
+        var region = GetRegion();
+        var windowDC = PInvoke.GetDC(_hWnd);
+        var memoryDC = PInvoke.CreateCompatibleDC(windowDC);
+        var hBitmap = PInvoke.CreateCompatibleBitmap(windowDC, region.Width, region.Height);
+        var oldBitmap = PInvoke.SelectObject(memoryDC, hBitmap);
+        if (!PInvoke.PrintWindow(_hWnd, memoryDC, (Windows.Win32.Storage.Xps.PRINT_WINDOW_FLAGS)2))
+        {
+            // 复制屏幕到内存 DC
+            PInvoke.BitBlt(memoryDC, 0, 0, region.Width, region.Height, windowDC, region.X, region.Y, ROP_CODE.SRCCOPY);
+        }
+        // 创建 Bitmap 并保存
+        var bmp = Image.FromHbitmap(hBitmap);
+        // 释放资源
+        PInvoke.SelectObject(memoryDC, oldBitmap);
+        PInvoke.DeleteObject(hBitmap);
+        PInvoke.DeleteDC(memoryDC);
+        PInvoke.ReleaseDC(_hWnd, windowDC);
+        return bmp;
     }
 }

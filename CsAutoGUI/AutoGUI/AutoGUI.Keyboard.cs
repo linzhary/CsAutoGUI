@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace CsAutoGUI;
 
@@ -254,6 +255,14 @@ public enum VirtualKey : byte
 }
 public partial class AutoGUI
 {
+    internal static void KeyDown(HWND hWnd, params VirtualKey[] keyCodes)
+    {
+        foreach (byte vk in keyCodes)
+        {
+            var scan = PInvoke.MapVirtualKey(vk, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC);
+            PInvoke.PostMessage(hWnd, PInvoke.WM_KEYDOWN, (WPARAM)vk, (LPARAM)(1 | ((int)scan << 16)));
+        }
+    }
     public static void KeyDown(params VirtualKey[] keyCodes)
     {
         foreach (byte vk in keyCodes)
@@ -261,12 +270,29 @@ public partial class AutoGUI
             PInvoke.keybd_event(vk, 0, 0, 0);
         }
     }
+
+    internal static void KeyUp(HWND hWnd, params VirtualKey[] keyCodes)
+    {
+        foreach (byte vk in keyCodes)
+        {
+            var scan = PInvoke.MapVirtualKey(vk, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC);
+            PInvoke.PostMessage(hWnd, PInvoke.WM_KEYUP, (WPARAM)vk, (LPARAM)((1 | ((int)scan << 16)) | (1 << 30) | (1 << 31)));
+        }
+    }
+
     public static void KeyUp(params VirtualKey[] keyCodes)
     {
         foreach (byte vk in keyCodes.Reverse())
         {
             PInvoke.keybd_event(vk, 0, KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP, 0);
         }
+    }
+
+    internal static void Press(HWND hWnd, params VirtualKey[] keyCodes)
+    {
+        KeyDown(hWnd, keyCodes);
+        Task.Delay(10).Wait();
+        KeyUp(hWnd, keyCodes);
     }
 
     public static void Press(params VirtualKey[] keyCodes)
